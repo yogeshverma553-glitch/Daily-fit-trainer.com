@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Fit Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eaf3ef;--card:#fff;--ink:#0d2a23;--mute:#5d7a71;--line:#cfe0d9;--go:#0f9d58;--hot:#f05a1a;--water:#1e7be0;--pro:#7b4ae2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1a16;--card:#13282f;--ink:#e6f5ef;--mute:#8fb0a6;--line:#23423b;--go:#31d07f;--hot:#ff7a3d;--water:#5aa8ff;--pro:#a98bff}}
+:root[data-theme="dark"]{--bg:#0b1a16;--card:#13282f;--ink:#e6f5ef;--mute:#8fb0a6;--line:#23423b;--go:#31d07f;--hot:#ff7a3d;--water:#5aa8ff;--pro:#a98bff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Outfit,"Segoe UI",system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 100px}
+h1{font-size:1.7rem;margin:0}h2{margin:18px 0 8px;font-size:1.15rem}
+.mute{color:var(--mute)}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+button,input,select{font:inherit;color:var(--ink)}
+button{cursor:pointer;background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:9px 14px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.pri{background:var(--go);border-color:var(--go);color:#062015;font-weight:800}
+input,select{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 auto}
+.rings{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ring{text-align:center}
+.ring svg{width:100%;max-width:150px}
+.ring b{font-size:1.4rem;display:block}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1.5px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{flex:1;border:0;border-radius:0;padding:14px 4px;font-size:.9rem;background:none}
+.nav button[aria-current="true"]{color:var(--go);font-weight:800;box-shadow:inset 0 3px var(--go)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+.x{border:0;padding:4px 8px;color:var(--mute)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.chips button{padding:6px 12px;border-radius:999px;font-size:.9rem}
+.grp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grp button{text-align:left;padding:14px}
+.grp b{display:block;font-size:1.1rem}
+.big{font-size:2.6rem;font-weight:800;text-align:center;line-height:1.1}
+.bar{height:10px;border-radius:9px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--go)}
+.ex{width:100%;display:block;background:var(--bg);border-radius:12px}
+.ex g{fill:none;stroke:var(--ink);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.pa{animation:fa 1.6s steps(1) infinite}.pb{animation:fb 1.6s steps(1) infinite}
+@keyframes fa{0%{opacity:1}50%{opacity:0}}@keyframes fb{0%{opacity:0}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.pa,.pb{animation:none}.pb{display:none}}
+</style>
+</head>
+<body>
+<main id="v"></main>
+<nav class="nav" id="nav"></nav>
+<script>
+const $=id=>document.getElementById(id),v=$("v");
+const key=d=>d.toISOString().slice(0,10),today=()=>key(new Date());
+let S={g:{steps:8000,cal:2000,water:8,pro:60,kg:0},d:{},w:{},theme:""},tab="home",run=null,tm=null;
+try{const s=JSON.parse(localStorage.getItem("fit-trainer")||"null");if(s)S=Object.assign(S,s)}catch(e){}
+const save=()=>{try{localStorage.setItem("fit-trainer",JSON.stringify(S))}catch(e){}};
+if(S.theme)document.documentElement.dataset.theme=S.theme;
+const day=k=>S.d[k||today()]||(S.d[k||today()]={steps:0,water:0,meals:[],wk:[]});
+const sum=(a,f)=>a.reduce((t,x)=>t+(+x[f]||0),0);
+const eaten=d=>sum(d.meals,"c"),burnt=d=>Math.round(d.steps*.04)+sum(d.wk,"k");
+const FOODS=[["Roti",100,3],["Rice (1 cup)",200,4],["Dal (1 bowl)",150,9],["Egg",78,6],["Banana",105,1],["Paneer (100 g)",265,18],["Milk (1 glass)",120,6],["Apple",95,0],["Oats (1 bowl)",150,5],["Salad",60,2]];
+const EX={
+"Abs":[["Crunches",30],["Leg raises",30],["Plank",30],["Russian twist",30],["Mountain climbers",30]],
+"Chest":[["Push-ups",30],["Wide push-ups",30],["Incline push-ups",30],["Diamond push-ups",25],["Hold push-up position",20]],
+"Legs":[["Squats",40],["Lunges",40],["Wall sit",30],["Calf raises",30],["Side lunges",30]],
+"Arms":[["Triceps dips (on a chair)",30],["Arm circles",30],["Push-ups",30],["Plank shoulder taps",30],["Wall push-ups",30]],
+"Butt":[["Glute bridges",40],["Donkey kicks",30],["Fire hydrants",30],["Squat pulses",30],["Reverse lunges",30]],
+"Full body":[["Jumping jacks",40],["Burpees",30],["Squats",40],["Push-ups",30],["Plank",30],["High knees",30]]};
+const WARM=[["Arm swings",20],["Hip circles",20],["Marching in place",30]];
+function ring(p,c,txt,sub){const r=52,L=2*Math.PI*r,o=L*(1-Math.min(1,p));return `<div class="ring"><svg viewBox="0 0 130 130" role="img" aria-label="${sub} ${txt}"><circle cx="65" cy="65" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="65" cy="65" r="${r}" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${o}" transform="rotate(-90 65 65)"/></svg><b>${txt}</b><span class="mute">${sub}</span></div>`}
+function nav(){$("nav").innerHTML=[["home","Today"],["diet","Diet"],["steps","Steps"],["work","Workout"],["prog","Progress"]].map(([k,l])=>`<button data-t="${k}" ${tab==k?'aria-current="true"':""}>${l}</button>`).join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{clearInterval(tm);run=null;tab=b.dataset.t;draw()})}
+function draw(){nav();({home,diet,steps,work,prog})[tab]()}
+function home(){
+const d=day(),g=S.g,left=g.cal-eaten(d)+burnt(d);
+v.innerHTML=`<div class="row"><h1>Today</h1><button id="th" style="flex:0">Theme</button></div><p class="mute">${new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</p>
+<div class="card rings">${ring(d.steps/g.steps,"var(--go)",d.steps.toLocaleString(),"of "+g.steps.toLocaleString()+" steps")}${ring(eaten(d)/g.cal,"var(--hot)",eaten(d),"of "+g.cal+" kcal eaten")}${ring(d.water/g.water,"var(--water)",d.water,"of "+g.water+" glasses")}${ring(sum(d.meals,"p")/g.pro,"var(--pro)",sum(d.meals,"p")+" g","of "+g.pro+" g protein")}</div>
+<div class="card"><b>${burnt(d)} kcal burned</b> <span class="mute">(steps and workouts)</span><br><span class="mute">Calories left today: ${left}</span></div>
+<div class="card"><div class="row"><b style="flex:2">Water</b><button id="w1">+1 glass</button><button id="w0">-1</button></div></div>
+<div class="card"><b>Workouts today:</b> ${d.wk.length?d.wk.map(w=>w.n).join(", "):'<span class="mute">None yet. Open the Workout tab to start.</span>'}</div>
+<h2>Goals</h2><div class="card"><div class="row"><label>Steps<input id="gs" type="number" value="${g.steps}"></label><label>Calories<input id="gc" type="number" value="${g.cal}"></label></div><div class="row" style="margin-top:8px"><label>Water (glasses)<input id="gw" type="number" value="${g.water}"></label><label>Protein (g)<input id="gp" type="number" value="${g.pro}"></label></div><button id="sg" class="pri" style="margin-top:10px;width:100%">Save goals</button></div>`;
+$("th").onclick=()=>{const dark=document.documentElement.dataset.theme==="dark"||(!S.theme&&matchMedia("(prefers-color-scheme:dark)").matches);S.theme=dark?"light":"dark";document.documentElement.dataset.theme=S.theme;save()};
+$("w1").onclick=()=>{d.water++;save();home()};$("w0").onclick=()=>{d.water=Math.max(0,d.water-1);save();home()};
+$("sg").onclick=()=>{S.g={steps:+$("gs").value||8000,cal:+$("gc").value||2000,water:+$("gw").value||8,pro:+$("gp").value||60,kg:S.g.kg};save();home()};
+}
+function diet(){
+const d=day();
+v.innerHTML=`<h1>Diet</h1><p class="mute">${eaten(d)} of ${S.g.cal} kcal &middot; ${sum(d.meals,"p")} g protein</p>
+<div class="bar"><i style="width:${Math.min(100,eaten(d)/S.g.cal*100)}%;background:var(--hot)"></i></div>
+<h2>Quick add</h2><div class="chips">${FOODS.map((f,i)=>`<button data-f="${i}">${f[0]} &middot; ${f[1]}</button>`).join("")}</div>
+<h2>Add your own</h2><div class="card"><select id="mt"><option>Breakfast</option><option>Lunch</option><option>Snack</option><option>Dinner</option></select><div class="row" style="margin-top:8px"><input id="mn" placeholder="Food name"><input id="mc" type="number" placeholder="Calories"><input id="mp" type="number" placeholder="Protein (g)"></div><button id="ma" class="pri" style="margin-top:10px;width:100%">Add food</button></div>
+<h2>Today's meals</h2><div class="card">${d.meals.length?d.meals.map((m,i)=>`<div class="item"><span><b>${m.n}</b><br><span class="mute">${m.t} &middot; ${m.p} g protein</span></span><span>${m.c} kcal <button class="x" data-r="${i}" aria-label="Remove ${m.n}">&times;</button></span></div>`).join(""):'<span class="mute">Nothing logged yet. Tap a food above to add it.</span>'}</div>`;
+const add=(n,c,p,t)=>{d.meals.push({n,c:+c,p:+p||0,t});save();diet()};
+v.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{const f=FOODS[b.dataset.f];add(f[0],f[1],f[2],$("mt").value)});
+$("ma").onclick=()=>{if(!$("mn").value||!$("mc").value){$("mn").focus();return}add($("mn").value,$("mc").value,$("mp").value,$("mt").value)};
+v.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{d.meals.splice(+b.dataset.r,1);save();diet()});
+}
+function steps(){
+const d=day();
+v.innerHTML=`<h1>Steps</h1><div class="card"><div class="big">${d.steps.toLocaleString()}</div><p class="mute" style="text-align:center">of ${S.g.steps.toLocaleString()} &middot; ${(d.steps*.00075).toFixed(2)} km &middot; ${Math.round(d.steps*.04)} kcal</p><div class="bar"><i style="width:${Math.min(100,d.steps/S.g.steps*100)}%"></i></div></div>
+<div class="chips"><button data-a="500">+500</button><button data-a="1000">+1,000</button><button data-a="2000">+2,000</button><button data-a="5000">+5,000</button></div>
+<div class="card"><div class="row"><input id="sv" type="number" placeholder="Steps from your phone or watch"><button id="sa" class="pri" style="flex:0">Add</button></div><div class="row" style="margin-top:8px"><button id="ss">Set total to this number</button><button id="sz">Reset today</button></div></div>
+<p class="mute">Web apps cannot read your phone's step counter, so enter steps from your phone or watch. Distance and calories are estimates.</p>`;
+v.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{d.steps+=+b.dataset.a;save();steps()});
+$("sa").onclick=()=>{d.steps+=+$("sv").value||0;save();steps()};
+$("ss").onclick=()=>{if($("sv").value!==""){d.steps=Math.max(0,+$("sv").value);save();steps()}};
+$("sz").onclick=()=>{d.steps=0;save();steps()};
+}
+function work(){
+if(run)return runner();
+v.innerHTML=`<h1>Workout</h1><p class="mute">No equipment. Each move is timed, with 10 seconds of rest between moves.</p><div class="grp">${Object.keys(EX).map(k=>`<button data-w="${k}"><b>${k}</b><span class="mute">${EX[k].length} moves &middot; ~${Math.round(sum(EX[k].map(e=>({s:e[1]+10})),"s")/60)} min</span></button>`).join("")}</div>
+<h2>Warm-up</h2><button data-w="Warm-up" style="width:100%;text-align:left">Warm-up &middot; 3 moves</button>`;
+v.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>preview(b.dataset.w));
+}
+const P={
+pu:{n:["Push-ups","Wide push-ups","Incline push-ups","Diamond push-ups","Hold push-up position"],t:"Keep your body in one straight line. Lower your chest, then push up.",a:[154,50,140,62,80,84,141,84,142,105,141,84,142,105,55,95,28,105,55,95,28,105],b:[154,80,140,90,80,98,120,98,142,105,120,98,142,105,55,101,28,105,55,101,28,105]},
+pl:{n:["Plank"],t:"Keep your back flat and tighten your stomach. Do not let your hips sag.",a:[146,64,132,74,75,84,132,102,154,102,132,102,154,102,52,95,26,105,52,95,26,105],b:[146,64,132,74,75,80,132,102,154,102,132,102,154,102,52,95,26,105,52,95,26,105]},
+sq:{n:["Squats","Squat pulses"],t:"Push your hips back, keep your chest up and your knees over your toes.",a:[100,22,100,36,100,66,115,42,130,42,115,42,130,42,100,86,100,105,104,86,104,105],b:[94,44,96,58,74,80,112,60,128,58,112,60,128,58,110,84,98,105,114,84,102,105]},
+ws:{n:["Wall sit"],t:"Slide down until your knees are at 90 degrees, back flat on the wall. Hold.",a:[70,26,70,44,70,76,88,60,104,58,88,60,104,58,104,76,104,105,106,76,106,105],b:[70,26,70,44,70,76,86,62,100,74,86,62,100,74,104,76,104,105,106,76,106,105]},
+lu:{n:["Lunges","Reverse lunges"],t:"Take a big step, lower your back knee, keep your front knee over your ankle.",a:[100,22,100,36,100,66,100,52,100,66,100,52,100,66,100,86,100,105,104,86,106,105],b:[100,32,100,46,98,76,100,60,100,74,100,60,100,74,124,82,122,105,78,98,60,105]},
+sl:{n:["Side lunges"],t:"Step wide to the side, sit back on one leg and keep the other leg straight.",a:[100,22,100,36,100,66,110,50,118,48,110,50,118,48,98,86,98,105,102,86,102,105],b:[100,32,100,46,100,78,110,60,118,58,110,60,118,58,80,84,66,105,120,92,136,105]},
+cr:{n:["Crunches"],t:"Lift your shoulders using your stomach muscles. Do not pull on your neck.",a:[34,100,52,102,100,102,42,90,40,98,42,90,40,98,125,80,145,102,125,80,145,102],b:[56,72,62,84,100,102,48,72,56,76,48,72,56,76,125,80,145,102,125,80,145,102]},
+lr:{n:["Leg raises"],t:"Keep your lower back on the floor and lift your legs slowly.",a:[30,100,46,102,100,102,70,103,90,103,70,103,90,103,130,102,160,102,132,103,162,103],b:[30,100,46,102,100,102,70,103,90,103,70,103,90,103,102,72,102,42,104,72,104,42]},
+rt:{n:["Russian twist"],t:"Lean back with your chest up and turn your torso from side to side.",a:[66,52,74,68,92,96,92,78,112,72,92,78,112,72,122,84,148,70,124,86,150,72],b:[66,52,74,68,92,96,86,84,98,94,86,84,98,94,122,84,148,70,124,86,150,72]},
+mc:{n:["Mountain climbers"],t:"Drive your knees toward your chest, one at a time, with your hips low.",a:[154,50,140,62,80,84,141,84,142,105,141,84,142,105,55,95,28,105,108,86,96,100],b:[154,50,140,62,80,84,141,84,142,105,141,84,142,105,108,86,96,100,55,95,28,105]},
+hk:{n:["High knees","Marching in place"],t:"Lift your knees to hip height at a steady pace and swing your arms.",a:[100,22,100,36,100,66,90,52,104,50,110,52,124,50,124,68,122,90,100,86,100,105],b:[100,22,100,36,100,66,90,52,104,50,110,52,124,50,100,86,100,105,124,68,122,90]},
+cf:{n:["Calf raises"],t:"Rise onto your toes, pause for a moment, then lower slowly.",a:[100,22,100,36,100,66,100,52,100,66,100,52,100,66,100,86,100,105,104,86,104,105],b:[100,14,100,28,100,58,100,44,100,58,100,44,100,58,100,78,102,97,104,78,106,97]},
+dp:{n:["Triceps dips (on a chair)"],t:"Keep your back close to the chair. Bend your elbows to about 90 degrees.",a:[78,26,76,44,98,78,74,58,72,72,74,58,72,72,124,80,140,105,124,80,140,105],b:[78,42,76,60,98,92,58,66,72,72,58,66,72,72,126,92,140,105,126,92,140,105]},
+ac:{n:["Arm circles","Arm swings"],t:"Make big, slow circles with straight arms.",a:[100,22,100,36,100,66,120,36,140,36,80,36,60,36,100,86,100,105,104,86,104,105],b:[100,22,100,36,100,66,112,20,120,6,88,20,80,6,100,86,100,105,104,86,104,105]},
+st:{n:["Plank shoulder taps"],t:"Keep your hips still while you tap each shoulder with the opposite hand.",a:[154,50,140,62,80,84,141,84,142,105,152,72,144,62,55,95,28,105,55,95,28,105],b:[154,50,140,62,80,84,152,72,144,62,141,84,142,105,55,95,28,105,55,95,28,105]},
+gb:{n:["Glute bridges"],t:"Squeeze your glutes and lift your hips until your body is in a straight line.",a:[30,100,46,102,98,102,70,103,90,103,70,103,90,103,120,80,140,102,120,80,140,102],b:[30,100,46,102,98,74,70,103,90,103,70,103,90,103,122,76,140,102,122,76,140,102]},
+dk:{n:["Donkey kicks"],t:"Keep your core tight and press your heel up toward the ceiling.",a:[142,56,128,64,78,66,129,84,130,105,129,84,130,105,80,104,52,104,82,90,54,104],b:[142,56,128,64,78,66,129,84,130,105,129,84,130,105,80,104,52,104,46,68,44,44]},
+fh:{n:["Fire hydrants"],t:"Lift your knee out to the side without twisting your back.",a:[142,56,128,64,78,66,129,84,130,105,129,84,130,105,80,104,52,104,82,90,54,104],b:[142,56,128,64,78,66,129,84,130,105,129,84,130,105,80,104,52,104,88,52,72,68]},
+jj:{n:["Jumping jacks"],t:"Jump your feet apart while your arms go overhead, then jump back.",a:[100,22,100,36,100,66,92,52,90,66,108,52,110,66,98,86,98,105,102,86,102,105],b:[100,22,100,36,100,66,122,22,134,6,78,22,66,6,116,86,128,105,84,86,72,105]},
+bp:{n:["Burpees"],t:"Squat down, jump or step back to a plank, then come back up.",a:[110,58,98,70,70,84,104,88,110,105,104,88,110,105,96,84,80,105,98,86,82,105],b:[154,50,140,62,80,84,141,84,142,105,141,84,142,105,55,95,28,105,55,95,28,105]},
+hc:{n:["Hip circles"],t:"Hands on your hips, move your hips in slow, wide circles.",a:[96,22,98,36,106,66,118,52,106,66,86,52,100,66,102,86,100,105,106,86,104,105],b:[104,22,102,36,94,66,114,52,100,66,82,52,94,66,98,86,100,105,102,86,104,105]},
+wp:{n:["Wall push-ups"],t:"Stand an arm's length from the wall and lean in with a straight body.",a:[124,30,114,44,86,74,128,44,140,44,128,44,140,44,72,90,58,105,72,90,58,105],b:[132,34,122,46,94,74,126,58,140,46,126,58,140,46,76,90,62,105,76,90,62,105]}
+};
+const pl=(...a)=>`<polyline points="${a.join(" ")}"/>`;
+const fig=q=>`<circle cx="${q[0]}" cy="${q[1]}" r="9" fill="var(--hot)" stroke="none"/>`+pl(q[0],q[1],q[2],q[3],q[4],q[5])+pl(q[2],q[3],q[6],q[7],q[8],q[9])+`<g opacity=".5">`+pl(q[2],q[3],q[10],q[11],q[12],q[13])+pl(q[4],q[5],q[18],q[19],q[20],q[21])+`</g>`+pl(q[4],q[5],q[14],q[15],q[16],q[17]);
+const pose=n=>Object.values(P).find(x=>x.n.includes(n));
+const tip=n=>pose(n)?pose(n).t:"";
+const art=n=>{const p=pose(n);return p?`<svg class="ex" viewBox="0 0 200 120" role="img" aria-label="Illustration of ${n}"><line x1="0" x2="200" y1="108" y2="108" stroke="var(--line)" stroke-width="3"/><g class="pa">${fig(p.a)}</g><g class="pb">${fig(p.b)}</g></svg>`:""};
+function preview(n){
+const l=n=="Warm-up"?WARM:EX[n];
+v.innerHTML=`<div class="row"><h1>${n}</h1><button id="bk" style="flex:0">Back</button></div><button class="pri" id="go" style="width:100%;margin:8px 0 12px">Start workout</button>`+l.map(e=>`<div class="card"><div class="row" style="flex-wrap:nowrap"><div style="flex:0 0 150px">${art(e[0])}</div><div><b>${e[0]}</b><br><span class="mute">${e[1]} seconds</span><p class="mute" style="margin:4px 0 0;font-size:.9rem">${tip(e[0])}</p></div></div></div>`).join("");
+$("bk").onclick=work;$("go").onclick=()=>{run={n,l,i:0,rest:true,t:5,st:Date.now()};runner()};
+}
+function runner(){
+const step=()=>{const e=run.l[run.i];v.innerHTML=`<div class="row"><b>${run.n}</b><button id="qx" style="flex:0">Quit</button></div><p class="mute">Move ${run.i+1} of ${run.l.length}</p><div class="card"><p class="mute" style="text-align:center;margin:0">${run.rest?"Get ready for":"Go"}</p><h2 style="text-align:center;font-size:1.6rem;margin-bottom:8px">${e[0]}</h2>${art(e[0])}<p class="mute" style="text-align:center;margin:8px 0 0">${tip(e[0])}</p><div class="big" id="tt">${run.t}</div><div class="bar" style="margin-top:12px"><i id="tb" style="width:100%"></i></div></div><div class="row"><button id="sk">Skip</button></div>`;$("qx").onclick=()=>{clearInterval(tm);run=null;work()};$("sk").onclick=()=>{run.t=0;tick(true)}};
+const tick=f=>{if(!f){run.t--}if(run.t<=0){if(run.rest){run.rest=false;run.t=run.l[run.i][1];run.max=run.t}else if(run.i>=run.l.length-1){return finish()}else{run.i++;run.rest=true;run.t=10;run.max=10}step()}else{$("tt").textContent=run.t;$("tb").style.width=(run.t/(run.max||run.t)*100)+"%"}};
+run.max=run.t;step();clearInterval(tm);tm=setInterval(()=>tick(),1000);
+}
+function finish(){
+clearInterval(tm);const mins=Math.max(1,Math.round((Date.now()-run.st)/60000)),k=mins*7,n=run.n;
+day().wk.push({n,m:mins,k});save();run=null;
+v.innerHTML=`<div class="card"><div class="big">Done!</div><p style="text-align:center">${n} finished in about ${mins} min. Estimated burn: ${k} kcal.</p></div><div class="row"><button class="pri" id="gh">Back to today</button><button id="ga">More workouts</button></div>`;
+$("gh").onclick=()=>{tab="home";draw()};$("ga").onclick=work;
+}
+function prog(){
+const days=[...Array(7)].map((_,i)=>{const t=new Date();t.setDate(t.getDate()-6+i);return t}),ds=days.map(t=>S.d[key(t)]||{steps:0,meals:[],wk:[],water:0});
+const chart=(vals,goal,c,u)=>{const m=Math.max(goal,...vals,1);return `<svg viewBox="0 0 280 120" style="width:100%" role="img" aria-label="${u} for the last 7 days">${vals.map((x,i)=>`<rect x="${i*40+6}" y="${100-x/m*90}" width="28" height="${x/m*90}" rx="5" fill="${c}"/><text x="${i*40+20}" y="114" font-size="10" text-anchor="middle" fill="var(--mute)">${days[i].toLocaleDateString(undefined,{weekday:"narrow"})}</text>`).join("")}<line x1="0" x2="280" y1="${100-goal/m*90}" y2="${100-goal/m*90}" stroke="var(--mute)" stroke-dasharray="4"/></svg>`};
+let streak=0;for(let i=0;i<60;i++){const t=new Date();t.setDate(t.getDate()-i);const x=S.d[key(t)];if(x&&(x.steps>=S.g.steps||x.wk.length))streak++;else if(i>0)break;else continue}
+const ws=Object.keys(S.w).sort().slice(-7);
+v.innerHTML=`<h1>Progress</h1><div class="card"><b>Streak: ${streak} day${streak==1?"":"s"}</b><br><span class="mute">A day counts when you hit your step goal or finish a workout.</span></div>
+<h2>Steps (dashed line is your goal)</h2><div class="card">${chart(ds.map(x=>x.steps),S.g.steps,"var(--go)","Steps")}</div>
+<h2>Calories eaten</h2><div class="card">${chart(ds.map(eaten),S.g.cal,"var(--hot)","Calories")}</div>
+<h2>Weight</h2><div class="card"><div class="row"><input id="kg" type="number" step="0.1" placeholder="Today's weight (kg)"><button id="kb" class="pri" style="flex:0">Save</button></div>${ws.length?ws.map(k=>`<div class="item"><span class="mute">${k}</span><b>${S.w[k]} kg</b></div>`).join(""):'<p class="mute">No weights logged yet.</p>'}</div>`;
+$("kb").onclick=()=>{if($("kg").value){S.w[today()]=+$("kg").value;save();prog()}};
+}
+draw();
+</script>
+</body>
+</html>
